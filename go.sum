@@ -1,3 +1,5 @@
+github.com/ThDawnWind/food-delivery-contracts v0.1.0 h1:sWajUcPANEh7+5O7ybLtOyD0ahSyPr7Td3R31x+PcqM=
+github.com/ThDawnWind/food-delivery-contracts v0.1.0/go.mod h1:I77eq7D7HFMvfMAdOO8pCQ93Fm5xjD4gP1T00n1hCoE=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
