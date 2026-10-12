@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -112,6 +113,43 @@ func TestLoggingInterceptor_ReturnsHandlerError(t *testing.T) {
 			"status code = %s, want %s",
 			status.Code(err),
 			codes.Unavailable,
+		)
+	}
+}
+
+func TestRequestIDFromContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := metadata.NewIncomingContext(
+		context.Background(),
+		metadata.Pairs(
+			"request-id",
+			"test-request-id",
+		),
+	)
+
+	got := requestIDFromContext(ctx)
+
+	if got != "test-request-id" {
+		t.Fatalf(
+			"request ID = %q, want %q",
+			got,
+			"test-request-id",
+		)
+	}
+}
+
+func TestRequestIDFromContext_NoMetadata(t *testing.T) {
+	t.Parallel()
+
+	got := requestIDFromContext(
+		context.Background(),
+	)
+
+	if got != "" {
+		t.Fatalf(
+			"request ID = %q, want empty string",
+			got,
 		)
 	}
 }
