@@ -2,10 +2,12 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"net"
 
-	deliveryv1 "github.com/ThDawnWind/food-delivery-contracts/gen/go/delivery/v1"
 	"github.com/ThDawnWind/delivery-service/internal/delivery"
+	"github.com/ThDawnWind/delivery-service/internal/grpcx"
+	deliveryv1 "github.com/ThDawnWind/food-delivery-contracts/gen/go/delivery/v1"
 	"google.golang.org/grpc"
 )
 
@@ -17,8 +19,12 @@ func main() {
 
 	deliveryService := delivery.NewService()
 	deliveryGRPCServer := delivery.NewGRPCServer(deliveryService)
-	
-	grpcServer := grpc.NewServer()
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpcx.LoggingInterceptor(slog.Default()),
+		),
+	)
 
 	deliveryv1.RegisterDeliveryServiceServer(
 		grpcServer,
