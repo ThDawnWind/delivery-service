@@ -9,6 +9,7 @@ import (
 	"github.com/ThDawnWind/delivery-service/internal/grpcx"
 	deliveryv1 "github.com/ThDawnWind/food-delivery-contracts/gen/go/delivery/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -30,6 +31,8 @@ func main() {
 		grpcServer,
 		deliveryGRPCServer,
 	)
+
+	reflection.Register(grpcServer)
 
 	log.Println("gRPC server started on :50051")
 
