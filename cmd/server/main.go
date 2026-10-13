@@ -9,6 +9,7 @@ import (
 	"github.com/ThDawnWind/delivery-service/internal/grpcx"
 	deliveryv1 "github.com/ThDawnWind/food-delivery-contracts/gen/go/delivery/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
 	grpc_health_v1 "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -23,7 +24,16 @@ func main() {
 	deliveryService := delivery.NewService()
 	deliveryGRPCServer := delivery.NewGRPCServer(deliveryService)
 
+	tlsCredentials, err := credentials.NewServerTLSFromFile(
+		"certs/server.crt",
+		"certs/server.key",
+	)
+	if err != nil {
+		log.Fatalf("failed to load TLS credentials: %v", err)
+	}
+
 	grpcServer := grpc.NewServer(
+		grpc.Creds(tlsCredentials),
 		grpc.UnaryInterceptor(
 			grpcx.LoggingInterceptor(slog.Default()),
 		),
