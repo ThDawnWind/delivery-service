@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"io"
 
 	deliveryv1 "github.com/ThDawnWind/food-delivery-contracts/gen/go/delivery/v1"
 	"google.golang.org/grpc"
@@ -57,4 +58,36 @@ func (s *GRPCServer) TrackDelivery(
 	}
 
 	return nil
+}
+
+func (s *GRPCServer) CalculateBatchDelivery(
+	stream grpc.ClientStreamingServer[
+		deliveryv1.CalculateBatchDeliveryRequest,
+		deliveryv1.CalculateBatchDeliveryResponse,
+	],
+) error {
+	var ordersCount int64
+	var totalDeliveryPrice int64
+
+	for {
+		req, err := stream.Recv()
+
+		if err == io.EOF {
+			return stream.SendAndClose(
+				&deliveryv1.CalculateBatchDeliveryResponse{
+					OrdersCount:        ordersCount,
+					TotalDeliveryPrice: totalDeliveryPrice,
+				},
+			)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		ordersCount++
+		totalDeliveryPrice += s.service.Calculate(
+			req.GetOrderAmount(),
+		)
+	}
 }
