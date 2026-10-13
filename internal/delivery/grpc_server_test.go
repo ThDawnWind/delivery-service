@@ -24,6 +24,16 @@ type fakeCalculateBatchDeliveryStream struct {
 	response  *deliveryv1.CalculateBatchDeliveryResponse
 }
 
+type fakeTrackDeliveriesStream struct {
+	grpc.ServerStream
+
+	requests  []*deliveryv1.TrackDeliveryRequest
+	recvIndex int
+	responses []*deliveryv1.DeliveryStatusUpdate
+	recvError error
+	sendError error
+}
+
 func (f *fakeCalculateBatchDeliveryStream) Recv() (
 	*deliveryv1.CalculateBatchDeliveryRequest,
 	error,
@@ -58,6 +68,36 @@ func (f *fakeTrackDeliveryStream) Send(
 	}
 
 	f.messages = append(f.messages, update)
+
+	return nil
+}
+
+func (f *fakeTrackDeliveriesStream) Recv() (
+	*deliveryv1.TrackDeliveryRequest,
+	error,
+) {
+	if f.recvError != nil {
+		return nil, f.recvError
+	}
+
+	if f.recvIndex >= len(f.requests) {
+		return nil, io.EOF
+	}
+
+	req := f.requests[f.recvIndex]
+	f.recvIndex++
+
+	return req, nil
+}
+
+func (f *fakeTrackDeliveriesStream) Send(
+	response *deliveryv1.DeliveryStatusUpdate,
+) error {
+	if f.sendError != nil {
+		return f.sendError
+	}
+
+	f.responses = append(f.responses, response)
 
 	return nil
 }
@@ -225,5 +265,120 @@ func TestGRPCServer_CalculateBatchDelivery_RecvError(t *testing.T) {
 
 	if stream.response != nil {
 		t.Fatal("expected no response")
+	}
+}
+
+func TestGRPCServer_TrackDeliveries(t *testing.T) {
+	t.Parallel()
+
+	service := NewService()
+	server := NewGRPCServer(service)
+
+	stream := &fakeTrackDeliveriesStream{
+		requests: []*deliveryv1.TrackDeliveryRequest{
+			{DeliveryId: 101},
+			{DeliveryId: 102},
+			{DeliveryId: 103},
+		},
+	}
+
+	err := server.TrackDeliveries(stream)
+	if err != nil {
+		t.Fatalf("TrackDeliveries() error = %v", err)
+	}
+
+	if len(stream.responses) != 3 {
+		t.Fatalf(
+			"responses count = %d, want 3",
+			len(stream.responses),
+		)
+	}
+
+	expectedIDs := []int64{101, 102, 103}
+
+	for i, expectedID := range expectedIDs {
+		response := stream.responses[i]
+
+		if response.GetDeliveryId() != expectedID {
+			t.Errorf(
+				"response[%d] delivery_id = %d, want %d",
+				i,
+				response.GetDeliveryId(),
+				expectedID,
+			)
+		}
+
+		if response.GetStatus() != deliveryv1.DeliveryStatus_DELIVERY_STATUS_CREATED {
+			t.Errorf(
+				"response[%d] status = %v, want CREATED",
+				i,
+				response.GetStatus(),
+			)
+		}
+	}
+}
+
+func TestGRPCServer_TrackDeliveries_RecvError(t *testing.T) {
+	t.Parallel()
+
+	service := NewService()
+	server := NewGRPCServer(service)
+
+	expectedErr := errors.New("receive failed")
+
+	stream := &fakeTrackDeliveriesStream{
+		recvError: expectedErr,
+	}
+
+	err := server.TrackDeliveries(stream)
+
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf(
+			"TrackDeliveries() error = %v, want %v",
+			err,
+			expectedErr,
+		)
+	}
+
+	if len(stream.responses) != 0 {
+		t.Fatalf(
+			"responses count = %d, want 0",
+			len(stream.responses),
+		)
+	}
+}
+
+func TestGRPCServer_TrackDeliveries_SendError(t *testing.T) {
+	t.Parallel()
+
+	service := NewService()
+	server := NewGRPCServer(service)
+
+	expectedErr := errors.New("send failed")
+
+	stream := &fakeTrackDeliveriesStream{
+		requests: []*deliveryv1.TrackDeliveryRequest{
+			{
+				DeliveryId: 101,
+			},
+		},
+		sendError: expectedErr,
+	}
+
+	err := server.TrackDeliveries(stream)
+
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf(
+			"TrackDeliveries() error = %v, want %v",
+			err,
+			expectedErr,
+		)
+	}
+
+	if len(stream.responses) != 0 {
+		t.Fatalf(
+			"responses count = %d, want 0",
+			len(stream.responses),
+		)
 	}
 }

@@ -91,3 +91,33 @@ func (s *GRPCServer) CalculateBatchDelivery(
 		)
 	}
 }
+
+func (s *GRPCServer) TrackDeliveries(
+	stream grpc.BidiStreamingServer[
+		deliveryv1.TrackDeliveryRequest,
+		deliveryv1.DeliveryStatusUpdate,
+	],
+) error {
+	for {
+		req, err := stream.Recv()
+
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		err = stream.Send(
+			&deliveryv1.DeliveryStatusUpdate{
+				DeliveryId: req.GetDeliveryId(),
+				Status: deliveryv1.
+					DeliveryStatus_DELIVERY_STATUS_CREATED,
+			},
+		)
+		if err != nil {
+			return err
+		}
+	}
+}
