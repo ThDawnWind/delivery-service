@@ -3,7 +3,7 @@ module github.com/ThDawnWind/delivery-service
 go 1.27.1
 
 require (
-	github.com/ThDawnWind/food-delivery-contracts v0.1.0
+	github.com/ThDawnWind/food-delivery-contracts v0.2.0
 	google.golang.org/grpc v1.84.0
 )
 
