@@ -9,6 +9,8 @@ import (
 	"github.com/ThDawnWind/delivery-service/internal/grpcx"
 	deliveryv1 "github.com/ThDawnWind/food-delivery-contracts/gen/go/delivery/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	grpc_health_v1 "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -33,6 +35,18 @@ func main() {
 	)
 
 	reflection.Register(grpcServer)
+
+	healthServer := health.NewServer()
+
+	healthServer.SetServingStatus(
+		"delivery.v1.DeliveryService",
+		grpc_health_v1.HealthCheckResponse_SERVING,
+	)
+
+	grpc_health_v1.RegisterHealthServer(
+		grpcServer,
+		healthServer,
+	)
 
 	log.Println("gRPC server started on :50051")
 
