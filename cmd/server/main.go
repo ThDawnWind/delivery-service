@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"log"
 	"log/slog"
 	"net"
+	"os"
 
 	"github.com/ThDawnWind/delivery-service/internal/delivery"
 	"github.com/ThDawnWind/delivery-service/internal/grpcx"
@@ -24,13 +27,34 @@ func main() {
 	deliveryService := delivery.NewService()
 	deliveryGRPCServer := delivery.NewGRPCServer(deliveryService)
 
-	tlsCredentials, err := credentials.NewServerTLSFromFile(
+	serverCertificate, err := tls.LoadX509KeyPair(
 		"certs/server.crt",
 		"certs/server.key",
 	)
 	if err != nil {
-		log.Fatalf("failed to load TLS credentials: %v", err)
+		log.Fatalf("failed to load server TLS certificate: %v", err)
 	}
+
+	caCertificate, err := os.ReadFile("certs/ca.crt")
+	if err != nil {
+		log.Fatalf("failed to read CA certificate: %v", err)
+	}
+
+	clientCAPool := x509.NewCertPool()
+
+	if ok := clientCAPool.AppendCertsFromPEM(caCertificate); !ok {
+		log.Fatal("failed to add CA certificate to client CA pool")
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{
+			serverCertificate,
+		},
+		ClientCAs:  clientCAPool,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+	}
+
+	tlsCredentials := credentials.NewTLS(tlsConfig)
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(tlsCredentials),
