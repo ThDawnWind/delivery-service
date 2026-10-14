@@ -58,8 +58,18 @@ func main() {
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(tlsCredentials),
-		grpc.UnaryInterceptor(
+
+		grpc.ChainUnaryInterceptor(
 			grpcx.LoggingInterceptor(slog.Default()),
+			grpcx.AuthorizationUnaryInterceptor(
+				"food-delivery-api",
+			),
+		),
+
+		grpc.ChainStreamInterceptor(
+			grpcx.AuthorizationStreamInterceptor(
+				"food-delivery-api",
+			),
 		),
 	)
 
